@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 #include <string.h>
+#include <openssl/sha.h>
 
 static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
 	int i;
@@ -70,18 +71,21 @@ int main(int argc, char* argv[]) {
 	sqlite3_close(db);
 
 	// hash
-	unsigned char ibuf[] = "compute sha11";
-	unsigned char obuf[10];
-	char hash_value[5];
+	 int i = 0;
+	    unsigned char temp[SHA_DIGEST_LENGTH];
+	    char buf[SHA_DIGEST_LENGTH*2];
+	    char *word = "tharigdddfndu";
 
-	SHA1(ibuf, strlen(ibuf), obuf);
+	    memset(buf, 0x0, SHA_DIGEST_LENGTH*2);
+	    memset(temp, 0x0, SHA_DIGEST_LENGTH);
 
-	int i;
-	for (i = 0; i < 5; i++) {
-		strcat(hash_value,obuf[i]);
-	}
-	printf("hash_value");
-	printf("\n");
+	    SHA1((unsigned char *)word, strlen(word), temp);
+
+	    for (i=0; i < 4; i++) {
+	        sprintf((char*)&(buf[i]), "%02x", temp[i]);
+	    }
+
+	    printf("SHA1 of %s is %s\n", word, buf);
 
 
 
