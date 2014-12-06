@@ -23,6 +23,24 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
 	return 0;
 }
 
+static char* hash_generator(char *word) {
+	int i = 0;
+	unsigned char temp[SHA_DIGEST_LENGTH];
+	char buf[SHA_DIGEST_LENGTH * 2];
+	//char *word = "tharigdddfndu";
+
+	memset(buf, 0x0, SHA_DIGEST_LENGTH * 2);
+	memset(temp, 0x0, SHA_DIGEST_LENGTH);
+
+	SHA1((unsigned char *) word, strlen(word), temp);
+
+	for (i = 0; i < 4; i++) {
+		sprintf((char*) &(buf[i]), "%02x", temp[i]);
+	}
+	return buf;
+
+}
+
 int main(int argc, char* argv[]) {
 
 	char *URL = "WWW.GOOGLE.COM";
@@ -71,22 +89,7 @@ int main(int argc, char* argv[]) {
 	sqlite3_close(db);
 
 	// hash
-	 int i = 0;
-	    unsigned char temp[SHA_DIGEST_LENGTH];
-	    char buf[SHA_DIGEST_LENGTH*2];
-	    char *word = "tharigdddfndu";
 
-	    memset(buf, 0x0, SHA_DIGEST_LENGTH*2);
-	    memset(temp, 0x0, SHA_DIGEST_LENGTH);
-
-	    SHA1((unsigned char *)word, strlen(word), temp);
-
-	    for (i=0; i < 4; i++) {
-	        sprintf((char*)&(buf[i]), "%02x", temp[i]);
-	    }
-
-	    printf("SHA1 of %s is %s\n", word, buf);
-
-
+	printf("SHA1 is %s\n", hash_generator("tharirrndu"));
 
 }
