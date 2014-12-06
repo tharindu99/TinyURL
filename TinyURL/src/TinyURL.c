@@ -57,18 +57,32 @@ int main(int argc, char* argv[]) {
 		fprintf(stdout, "Table created successfully\n");
 	}
 
-
 	sql = "SELECT * from Records";
 
 	rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
 	//Execute the sql statement.
-		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL error: %s\n", zErrMsg);
-			sqlite3_free(zErrMsg);
-		} else {
-			fprintf(stdout, "operation successfully\n");
-		}
-		sqlite3_close(db);
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+	} else {
+		fprintf(stdout, "operation successfully\n");
+	}
+	sqlite3_close(db);
+
+	// hash
+	unsigned char ibuf[] = "compute sha11";
+	unsigned char obuf[10];
+	char hash_value[5];
+
+	SHA1(ibuf, strlen(ibuf), obuf);
+
+	int i;
+	for (i = 0; i < 5; i++) {
+		strcat(hash_value,obuf[i]);
+	}
+	printf("hash_value");
+	printf("\n");
+
 
 
 }
