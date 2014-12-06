@@ -43,7 +43,7 @@ static char* hash_generator(char *word) {
  static void show(char *hash_value){
  }*/
 int main(int argc, char* argv[]) {
-	char *hash = "12346";
+	char *hash = "12344";
 	char *URL = "www.w3school.com";
 	sqlite3 *db;
 	char *zErrMsg = 0;
@@ -81,6 +81,15 @@ int main(int argc, char* argv[]) {
 	} else {
 		fprintf(stdout, "operation successfully\n");
 	}
+
+	char sql_in_1[255] = "INSERT OR IGNORE INTO Records(Hash,URL)VALUES(";
+	strcat(sql_in_1,hash_generator(URL));
+	strcat(sql_in_1,",'");
+	strcat(sql_in_1,URL);
+	strcat(sql_in_1,"');");
+
+	printf("done %s\n ",sql_in_1);
+	rc = sqlite3_exec(db, sql_in_1, callback, 0, &zErrMsg);
 	sqlite3_close(db);
 
 }
