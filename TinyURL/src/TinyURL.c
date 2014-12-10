@@ -13,14 +13,34 @@
 #include <string.h>
 #include <openssl/sha.h>
 
+int query_stat = 0;
+char *result = NULL;
+
+char hash_in[255], URL_in[255];
+char *hash, *URL;
+sqlite3 *db;
+char *zErrMsg = 0;
+int rc;
+char *sql;
+const char* data;
+char *longUrl, *shortUrl;
+char *baseUrl = "www.tinyURL.com\";"
+		"
 void quit() {
-	printf("budu saranayi !!");
+	printf("quit !!");
 	exit(1);
+}
+
+void print_URL(char **argv) {
+	printf("hiiii%s\n", result);
 }
 
 static int callback(void *data, int argc, char **argv, char **azColName) {
 // this function for print the database retrivals.
-	printf("%s :\n", argv[0]);
+	//printf("number of records %d :\n", argc);
+	//print_URL(argv);
+	query_stat = argc;
+	result = argv[0];
 	/*
 	 * if you want to print all the retrivals from query
 	 * int i;
@@ -29,6 +49,7 @@ static int callback(void *data, int argc, char **argv, char **azColName) {
 	 }*/
 	return 0;
 }
+
 char* hash_generator(char *word) {
 //this function for create the hash value for string
 	int i = 0;
@@ -47,18 +68,63 @@ char* hash_generator(char *word) {
 
 	return out_hash;
 }
-/*
- static void show(char *hash_value){
- }*/
-int main(int argc, char* argv[]) {
 
-	char hash_in[255], URL_in[255];
-	char *hash, *URL;
-	sqlite3 *db;
-	char *zErrMsg = 0;
-	int rc;
-	char *sql;
-	const char* data;
+static void shorten(char *longUrl, char *shortUrl) {
+
+	char sql_chkURL[255] = "SELECT Hash from Records where URL = '";
+	strcat(sql_chkURL, longUrl);
+	strcat(sql_chkURL, "';");
+
+	rc = sqlite3_exec(db, sql_chkURL, callback, 0, &zErrMsg);
+
+	if (query_stat != 0) {
+		strcat(shortUrl, baseUrl);
+		strcat(shortUrl, result);
+		query_stat = 0;
+		result = NULL;
+	} else {
+		hash = hash_generator(longUrl);
+		//should add here to collition detecting and resolvement
+		printf("the tiny url for that : www.myURl/%s\n", hash);
+
+		char sql_in_1[255] = "INSERT OR IGNORE INTO Records(Hash,URL) VALUES ('";
+		strcat(sql_in_1, hash);
+		strcat(sql_in_1, "'");
+		strcat(sql_in_1, ",'");
+		strcat(sql_in_1, URL);
+		strcat(sql_in_1, "');");
+
+		//printf("done %s\n ", sql_in_1);
+
+		rc = sqlite3_exec(db, sql_in_1, callback, 0, &zErrMsg);
+		//Execute the sql statement.
+		if (rc != SQLITE_OK) {
+			fprintf(stderr, "SQL error2: %s\n", zErrMsg);
+			sqlite3_free(zErrMsg);
+		} else {
+			fprintf(stdout, "database updated\n");
+		}
+	}
+}
+
+static void getLongUrl(char *shortUrl, char *longUrl) {
+	// this shortUrl = saved hash of longurl and it may not included base Url
+	char sql_getLong[255] = "SELECT URL from Records where Hash = '";
+	strcat(sql_getLong, shortUrl);
+	strcat(sql_getLong, "';");
+
+	rc = sqlite3_exec(db, sql_getLong, callback, 0, &zErrMsg);
+	//Execute the sql statement.
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "SQL error2: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+	}
+	longUrl = result;
+	result = NULL;
+	query_stat = 0;
+}
+
+int main(int argc, char* argv[]) {
 
 	// open sqlite3 database "URL_Records"
 	rc = sqlite3_open("URL_Records.db", &db);
@@ -71,7 +137,7 @@ int main(int argc, char* argv[]) {
 	sql = "CREATE TABLE if not exists Records("
 			"Hash CHAR(5) PRIMARY KEY NOT NULL,"
 			"URL TEXT NOT NULL);";
-	rc = sqlite3_exec(db, sql, callback, (void*) data, &zErrMsg);
+	rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
 	//Execute the sql statement.
 	if (rc != SQLITE_OK) {
 		fprintf(stderr, "SQL error1: %s\n", zErrMsg);
@@ -89,28 +155,39 @@ int main(int argc, char* argv[]) {
 			printf("Enter the URL :");
 			scanf("%s", &URL_in);
 			URL = URL_in;
-			hash = hash_generator(URL);
-			//strcpy(hash, hash_generator(URL));
+			char sql_chkURL[255] = "SELECT Hash from Records where URL = '";
 
-			printf("the tiny url for that : www.myURl/%s\n", hash);
+			strcat(sql_chkURL, URL_in);
+			strcat(sql_chkURL, "';");
+			//printf("%s\n",sql_chkURL);
+			rc = sqlite3_exec(db, sql_chkURL, callback, 0, &zErrMsg);
 
-			char sql_in_1[255] =
-					"INSERT OR IGNORE INTO Records(Hash,URL) VALUES ('";
-			strcat(sql_in_1, hash);
-			strcat(sql_in_1, "'");
-			strcat(sql_in_1, ",'");
-			strcat(sql_in_1, URL);
-			strcat(sql_in_1, "');");
-
-			//printf("done %s\n ", sql_in_1);
-
-			rc = sqlite3_exec(db, sql_in_1, callback, 0, &zErrMsg);
-			//Execute the sql statement.
-			if (rc != SQLITE_OK) {
-				fprintf(stderr, "SQL error2: %s\n", zErrMsg);
-				sqlite3_free(zErrMsg);
+			if (query_stat != 0) {
+				printf("HAsh : %s\n", result);
+				query_stat = 0;
+				result = NULL;
 			} else {
-				fprintf(stdout, "database updated\n");
+				hash = hash_generator(URL);
+				printf("the tiny url for that : www.myURl/%s\n", hash);
+
+				char sql_in_1[255] =
+						"INSERT OR IGNORE INTO Records(Hash,URL) VALUES ('";
+				strcat(sql_in_1, hash);
+				strcat(sql_in_1, "'");
+				strcat(sql_in_1, ",'");
+				strcat(sql_in_1, URL);
+				strcat(sql_in_1, "');");
+
+				//printf("done %s\n ", sql_in_1);
+
+				rc = sqlite3_exec(db, sql_in_1, callback, 0, &zErrMsg);
+				//Execute the sql statement.
+				if (rc != SQLITE_OK) {
+					fprintf(stderr, "SQL error2: %s\n", zErrMsg);
+					sqlite3_free(zErrMsg);
+				} else {
+					fprintf(stdout, "database updated\n");
+				}
 			}
 
 		} else if (a == 2) {
