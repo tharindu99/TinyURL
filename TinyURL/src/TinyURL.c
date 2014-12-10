@@ -24,8 +24,8 @@ int rc;
 char *sql;
 const char* data;
 char *longUrl, *shortUrl;
-char *baseUrl = "www.tinyURL.com\";"
-		"
+char *baseUrl = "www.tinyURL.com" ;
+
 void quit() {
 	printf("quit !!");
 	exit(1);
@@ -69,7 +69,7 @@ char* hash_generator(char *word) {
 	return out_hash;
 }
 
-static void shorten(char *longUrl, char *shortUrl) {
+ void shorten(char *longUrl, char *shortUrl) {
 
 	char sql_chkURL[255] = "SELECT Hash from Records where URL = '";
 	strcat(sql_chkURL, longUrl);
@@ -107,7 +107,7 @@ static void shorten(char *longUrl, char *shortUrl) {
 	}
 }
 
-static void getLongUrl(char *shortUrl, char *longUrl) {
+ void getLongUrl(char *shortUrl, char *longUrl) {
 	// this shortUrl = saved hash of longurl and it may not included base Url
 	char sql_getLong[255] = "SELECT URL from Records where Hash = '";
 	strcat(sql_getLong, shortUrl);
@@ -120,6 +120,7 @@ static void getLongUrl(char *shortUrl, char *longUrl) {
 		sqlite3_free(zErrMsg);
 	}
 	longUrl = result;
+	printf("got url %s,\n",result);
 	result = NULL;
 	query_stat = 0;
 }
@@ -153,8 +154,8 @@ int main(int argc, char* argv[]) {
 		if (a == 1) {
 			// insert URL
 			printf("Enter the URL :");
-			scanf("%s", &URL_in);
-			URL = URL_in;
+			scanf("%s", URL_in);
+
 			char sql_chkURL[255] = "SELECT Hash from Records where URL = '";
 
 			strcat(sql_chkURL, URL_in);
@@ -192,21 +193,8 @@ int main(int argc, char* argv[]) {
 
 		} else if (a == 2) {
 			printf("Enter the Hash :");
-			scanf("%s", &hash_in);
-			hash = hash_in;
-
-			char sql_1[255] = "SELECT URL from Records where Hash = '";
-			strcat(sql_1, hash);
-			strcat(sql_1, "';");
-			sql = sql_1;
-
-			printf("The Url is : \n");
-			rc = sqlite3_exec(db, sql_1, callback, 0, &zErrMsg);
-			//Execute the sql statement.
-			if (rc != SQLITE_OK) {
-				fprintf(stderr, "SQL error2: %s\n", zErrMsg);
-				sqlite3_free(zErrMsg);
-			}
+			scanf("%s", hash_in);
+			getLongUrl(&hash_in[0],NULL);
 		} else {
 			break;
 		}
