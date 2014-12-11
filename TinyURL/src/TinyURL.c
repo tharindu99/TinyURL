@@ -24,7 +24,7 @@ int rc;
 char *sql;
 const char* data;
 char *longUrl, *shortUrl;
-char *baseUrl = "www.tinyURL.com" ;
+char *baseUrl = "www.tinyURL.com";
 
 void quit() {
 	printf("quit !!");
@@ -69,45 +69,63 @@ char* hash_generator(char *word) {
 	return out_hash;
 }
 
- void shorten(char *longUrl, char *shortUrl) {
+void shorten(char *longUrl, char *shortUrl) {
 
 	char sql_chkURL[255] = "SELECT Hash from Records where URL = '";
 	strcat(sql_chkURL, longUrl);
 	strcat(sql_chkURL, "';");
+	printf("%s\n", sql_chkURL);
+
+	char short_url[255];
+	hash = hash_generator(longUrl);
 
 	rc = sqlite3_exec(db, sql_chkURL, callback, 0, &zErrMsg);
-
+	printf("ddddddddddd %d", query_stat);
 	if (query_stat != 0) {
-		strcat(shortUrl, baseUrl);
-		strcat(shortUrl, result);
+		//strcat(short_url, baseUrl);
+		//strcat(short_url, result);
+		shortUrl = result;
 		query_stat = 0;
 		result = NULL;
+
+		printf("the tiny url for that : %s\n", shortUrl);
+
 	} else {
-		hash = hash_generator(longUrl);
-		//should add here to collition detecting and resolvement
+
+		//collition resolving and hash generating
+		while(1){
+			sql_chkURL[255] = "SELECT Hash from Records where Hash = '";
+			strcat(sql_chkURL, hash);
+			strcat(sql_chkURL, "';");
+			rc = sqlite3_exec(db, sql_chkURL, callback, 0, &zErrMsg);
+			if(query_stat==0)break;
+			hash = hash_generator(hash);
+		}
+
+
 		printf("the tiny url for that : www.myURl/%s\n", hash);
 
 		char sql_in_1[255] = "INSERT OR IGNORE INTO Records(Hash,URL) VALUES ('";
-		strcat(sql_in_1, hash);
-		strcat(sql_in_1, "'");
-		strcat(sql_in_1, ",'");
-		strcat(sql_in_1, URL);
-		strcat(sql_in_1, "');");
+		 strcat(sql_in_1, hash);
+		 strcat(sql_in_1, "'");
+		 strcat(sql_in_1, ",'");
+		 strcat(sql_in_1, URL);
+		 strcat(sql_in_1, "');");
 
-		//printf("done %s\n ", sql_in_1);
-
-		rc = sqlite3_exec(db, sql_in_1, callback, 0, &zErrMsg);
-		//Execute the sql statement.
-		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL error2: %s\n", zErrMsg);
-			sqlite3_free(zErrMsg);
-		} else {
-			fprintf(stdout, "database updated\n");
-		}
+		 printf("done %s\n ", sql_in_1);
+/*
+		 rc = sqlite3_exec(db, sql_in_1, callback, 0, &zErrMsg);
+		 //Execute the sql statement.
+		 if (rc != SQLITE_OK) {
+		 fprintf(stderr, "SQL error2: %s\n", zErrMsg);
+		 sqlite3_free(zErrMsg);
+		 } else {
+		 fprintf(stdout, "database updated\n");
+		 }*/
 	}
 }
 
- void getLongUrl(char *shortUrl, char *longUrl) {
+void getLongUrl(char *shortUrl, char *longUrl) {
 	// this shortUrl = saved hash of longurl and it may not included base Url
 	char sql_getLong[255] = "SELECT URL from Records where Hash = '";
 	strcat(sql_getLong, shortUrl);
@@ -120,7 +138,7 @@ char* hash_generator(char *word) {
 		sqlite3_free(zErrMsg);
 	}
 	longUrl = result;
-	printf("got url %s,\n",result);
+	printf("got url %s,\n", result);
 	result = NULL;
 	query_stat = 0;
 }
@@ -155,46 +173,13 @@ int main(int argc, char* argv[]) {
 			// insert URL
 			printf("Enter the URL :");
 			scanf("%s", URL_in);
-
-			char sql_chkURL[255] = "SELECT Hash from Records where URL = '";
-
-			strcat(sql_chkURL, URL_in);
-			strcat(sql_chkURL, "';");
-			//printf("%s\n",sql_chkURL);
-			rc = sqlite3_exec(db, sql_chkURL, callback, 0, &zErrMsg);
-
-			if (query_stat != 0) {
-				printf("HAsh : %s\n", result);
-				query_stat = 0;
-				result = NULL;
-			} else {
-				hash = hash_generator(URL);
-				printf("the tiny url for that : www.myURl/%s\n", hash);
-
-				char sql_in_1[255] =
-						"INSERT OR IGNORE INTO Records(Hash,URL) VALUES ('";
-				strcat(sql_in_1, hash);
-				strcat(sql_in_1, "'");
-				strcat(sql_in_1, ",'");
-				strcat(sql_in_1, URL);
-				strcat(sql_in_1, "');");
-
-				//printf("done %s\n ", sql_in_1);
-
-				rc = sqlite3_exec(db, sql_in_1, callback, 0, &zErrMsg);
-				//Execute the sql statement.
-				if (rc != SQLITE_OK) {
-					fprintf(stderr, "SQL error2: %s\n", zErrMsg);
-					sqlite3_free(zErrMsg);
-				} else {
-					fprintf(stdout, "database updated\n");
-				}
-			}
+			printf("luuuuuuuuu %s\n", URL_in);
+			shorten(&URL_in[0], NULL);
 
 		} else if (a == 2) {
 			printf("Enter the Hash :");
 			scanf("%s", hash_in);
-			getLongUrl(&hash_in[0],NULL);
+			getLongUrl(&hash_in[0], NULL);
 		} else {
 			break;
 		}
