@@ -44,6 +44,29 @@ static int callback(void *data, int argc, char **argv, char **azColName) {
 	return 0;
 }
 
+char* hash_new_function(int id) {
+	printf("id : %d\n",id);
+	char hash1[5];
+	int p = 0, c = 0;
+	char alphebet[62] =
+			"abcdefghijklmnopkrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	while (id >= 1) {
+		hash1[p] = alphebet[id % 62];
+		p++;
+		id = id / 62;
+	}
+	char hash_out1[p];
+	while (p > 0) {
+		hash_out1[c++] = hash1[--p];
+	}
+	char *aaa = hash1;
+	//printf("ssssss%s :\n",aaa);
+	char* rtn_hash = malloc(p);
+	strcpy(rtn_hash, hash_out1);
+	printf("hash : %s\n",rtn_hash);
+	return rtn_hash;
+}
+
 char* hash_generator(char *word) {
 //this function for create the hash value for string
 	int i = 0;
@@ -65,44 +88,37 @@ char* hash_generator(char *word) {
 }
 
 void shorten(char *longUrl, char *shortUrl) {
-
+	char *hashnew, *shortUrl1;
 	char sql_chkURL[255] = "SELECT Hash from Records where URL = '";
 	strcat(sql_chkURL, longUrl);
 	strcat(sql_chkURL, "';");
-	//printf("%s\n", sql_chkURL);
 
 
-	char *con_url[255];
-	strcat(con_url,baseUrl);
-	hash = hash_generator(longUrl);
 
 	rc = sqlite3_exec(db, sql_chkURL, callback, 0, &zErrMsg);
-	//printf("%d", query_stat);
+
 	if (query_stat != 0) { //Url is on database
-		shortUrl = result;
+		shortUrl1 = result;
 		query_stat = 0;
 		result = NULL;
-
-		strcat(con_url,shortUrl);
-		//printf("the tiny url for that :%s\n",shortUrl);
 
 	} else { //url not in database
 		//collition resolving and hash generating
-		while (1) {
-			sql_chkURL[255] = "SELECT Hash from Records where Hash = '";
-			strcat(sql_chkURL, hash);
-			strcat(sql_chkURL, "';");
-			rc = sqlite3_exec(db, sql_chkURL, callback, 0, &zErrMsg);
-			if (query_stat == 0)
-				break;
-			hash = hash_generator(hash);
-		}
+
+		char sql_chkURL11[255] = "SELECT COALESCE(MAX(ID)+1, 0) FROM  Records";
+		rc = sqlite3_exec(db, sql_chkURL11, callback, 0, &zErrMsg);
+
+		int id_entry = atoi(result);
+
+		hashnew = hash_new_function(id_entry);
+
 		query_stat = 0;
 		result = NULL;
-		strcat(con_url,hash);
+		shortUrl1 = hashnew;
+		//strcat(baseUrl,hashnew);
 
 		char sql_in_1[255] = "INSERT OR IGNORE INTO Records(Hash,URL) VALUES ('";
-		strcat(sql_in_1, hash);
+		strcat(sql_in_1, hashnew);
 		strcat(sql_in_1, "'");
 		strcat(sql_in_1, ",'");
 		strcat(sql_in_1, longUrl);
@@ -117,11 +133,16 @@ void shorten(char *longUrl, char *shortUrl) {
 			sqlite3_free(zErrMsg);
 		} else {
 			fprintf(stdout, "database updated\n");
+			shortUrl1 = hashnew;
 		}
 	}
 	//assign result to shortUrl
-	shortUrl = con_url;
-	printf("The tiny url  : %s\n",shortUrl);
+	char str_output[20]={0};
+	strcpy(str_output,baseUrl);
+	strcat(str_output,shortUrl1);
+	shortUrl = str_output;
+	printf("The tiny url  :%s\n",shortUrl);
+
 }
 
 void getLongUrl(char *shortUrl, char *longUrl) {
@@ -143,7 +164,8 @@ void getLongUrl(char *shortUrl, char *longUrl) {
 }
 
 int main(int argc, char* argv[]) {
-
+	char *aa = hash_new_function(1);
+	printf("hhhh %s\n",aa);
 	// open sqlite3 database "URL_Records"
 	rc = sqlite3_open("URL_Records.db", &db);
 	// if db exist it will open otherwise create a db
@@ -152,9 +174,9 @@ int main(int argc, char* argv[]) {
 		exit(0);
 	}
 	//query to create "Records" table if not exists.
-	sql = "CREATE TABLE if not exists Records("
-			"Hash CHAR(5) PRIMARY KEY NOT NULL,"
-			"URL TEXT NOT NULL);";
+	sql = "CREATE TABLE if not exists Records( "
+			"ID INTEGER PRIMARY KEY  AUTOINCREMENT,"
+			"Hash CHAR(5)  NOT NULL,URL TEXT NOT NULL);";
 	rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
 	//Execute the sql statement.
 	if (rc != SQLITE_OK) {
