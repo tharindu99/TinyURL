@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 #include <string.h>
-#include <openssl/sha.h>
 
 int query_stat = 0;
 char *result = NULL;
@@ -45,46 +44,30 @@ static int callback(void *data, int argc, char **argv, char **azColName) {
 }
 
 char* hash_new_function(int id) {
-	printf("id : %d\n",id);
+	//printf("id : %d\n",id);
+	int temp_id = id;
 	char hash1[5];
 	int p = 0, c = 0;
 	char alphebet[62] =
 			"abcdefghijklmnopkrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-	while (id >= 1) {
+	while (id >0) {
 		hash1[p] = alphebet[id % 62];
 		p++;
 		id = id / 62;
 	}
-	char hash_out1[p];
-	while (p > 0) {
+	char hash_out1[5];
+	if(temp_id==0){
+		hash_out1[0] = alphebet[0];
+	}else{
+
+		while (p > 0) {
 		hash_out1[c++] = hash1[--p];
+		}
 	}
 	char *aaa = hash1;
-	//printf("ssssss%s :\n",aaa);
 	char* rtn_hash = malloc(p);
 	strcpy(rtn_hash, hash_out1);
-	printf("hash : %s\n",rtn_hash);
 	return rtn_hash;
-}
-
-char* hash_generator(char *word) {
-//this function for create the hash value for string
-	int i = 0;
-	unsigned char temp[SHA_DIGEST_LENGTH];
-	char buf[SHA_DIGEST_LENGTH * 2];
-	memset(buf, 0x0, SHA_DIGEST_LENGTH * 2);
-	memset(temp, 0x0, SHA_DIGEST_LENGTH);
-
-//hash generate using SHA1 algorithm
-	SHA1((unsigned char *) word, strlen(word), temp);
-	for (i = 0; i < 4; i++) {
-		sprintf((char*) &(buf[i]), "%02x", temp[i]);
-	}
-
-	char* out_hash = malloc(strlen(buf) + 1);
-	strcpy(out_hash, buf);
-
-	return out_hash;
 }
 
 void shorten(char *longUrl, char *shortUrl) {
@@ -93,29 +76,23 @@ void shorten(char *longUrl, char *shortUrl) {
 	strcat(sql_chkURL, longUrl);
 	strcat(sql_chkURL, "';");
 
-
-
 	rc = sqlite3_exec(db, sql_chkURL, callback, 0, &zErrMsg);
 
 	if (query_stat != 0) { //Url is on database
 		shortUrl1 = result;
 		query_stat = 0;
 		result = NULL;
-
-	} else { //url not in database
-		//collition resolving and hash generating
-
+	}else { //url not in database
 		char sql_chkURL11[255] = "SELECT COALESCE(MAX(ID)+1, 0) FROM  Records";
 		rc = sqlite3_exec(db, sql_chkURL11, callback, 0, &zErrMsg);
 
 		int id_entry = atoi(result);
-
+		if(id_entry ==0) id_entry=1;
 		hashnew = hash_new_function(id_entry);
 
 		query_stat = 0;
 		result = NULL;
 		shortUrl1 = hashnew;
-		//strcat(baseUrl,hashnew);
 
 		char sql_in_1[255] = "INSERT OR IGNORE INTO Records(Hash,URL) VALUES ('";
 		strcat(sql_in_1, hashnew);
@@ -123,8 +100,6 @@ void shorten(char *longUrl, char *shortUrl) {
 		strcat(sql_in_1, ",'");
 		strcat(sql_in_1, longUrl);
 		strcat(sql_in_1, "');");
-
-		//printf("done %s\n ", sql_in_1);
 
 		rc = sqlite3_exec(db, sql_in_1, callback, 0, &zErrMsg);
 		//Execute the sql statement.
@@ -164,8 +139,17 @@ void getLongUrl(char *shortUrl, char *longUrl) {
 }
 
 int main(int argc, char* argv[]) {
-	char *aa = hash_new_function(1);
-	printf("hhhh %s\n",aa);
+	char *aa = hash_new_function(0);
+//test case for hash generate
+	/*int count = 0;
+	FILE *f = fopen("test.txt", "w");
+
+	while (count<916132){
+		fprintf(f,"hash - %d : %s\n ",count,hash_new_function(count));
+		count++;
+	}
+	fclose(f);*/
+
 	// open sqlite3 database "URL_Records"
 	rc = sqlite3_open("URL_Records.db", &db);
 	// if db exist it will open otherwise create a db
@@ -187,9 +171,7 @@ int main(int argc, char* argv[]) {
 	while (1) {
 		int a;
 		printf("Enter 1 to add URl , 2 to hash and other to quit :");
-
 		scanf("%d", &a);
-
 		if (a == 1) {
 			// insert URL
 			printf("Enter the URL :");
